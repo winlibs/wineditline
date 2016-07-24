@@ -91,11 +91,7 @@ editline support if it is unavailable
  *       editable command line we want to offer here
  */
 #ifdef WIN32
-#ifdef _MSC_VER
 #define DO_EDIT_DEFAULT_LIB  "edit.dll"
-#else
-#define DO_EDIT_DEFAULT_LIB  "libedit.dll"
-#endif
 #else
 #define DO_EDIT_DEFAULT_LIB  "libedit.so"
 #endif

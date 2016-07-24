@@ -1,6 +1,20 @@
 WinEditLine's (formerly MinGWEditLine) ChangeLog
 ------------------------------------------------
 
+*** March 8, 2016: release of WinEditLine 2.102 ***
+
+  Changes with respect to the previous version include:
+
+  - history_length() now reports the correct history length (it used
+    to report the actual length + 1)
+  - current_history() now correctly reports the current history entry
+  - previous_history() and next_history() do not allow going outside
+    history boundaries
+  - where_history() is now 1-based as in libedit/readline
+  - set_current_pos() is now 1-based as in libedit/readline
+  - fixed the DLL name in libedit_test_dll.c
+  
+
 *** April 12, 2014: release of WinEditLine 2.101 ***
 
   Changes with respect to the previous version include:

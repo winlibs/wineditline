@@ -508,7 +508,7 @@ history length
 */
 int history_length()
 {
-  return _el_hs.length;
+  return _el_hs.length - 1;
 }
 
 
@@ -518,7 +518,8 @@ the current HIST_ENTRY structure
 */
 HIST_ENTRY *current_history()
 {
-  return (_el_hs.entries ? _el_hs.entries[_el_hs.offset] : NULL);
+  return ((_el_hs.entries && _el_hs.offset)
+    ? _el_hs.entries[_el_hs.offset - 1] : NULL);
 }
 
 
@@ -542,12 +543,29 @@ offset based on the history entry
 progressive index (starting from zero)
 returns 1 if succesful, 0 if not
 */
-int history_set_pos(int i)
+int _el_history_set_pos(int i)
 {
-  if ((i < 0) || (i > _el_hs.length)) {
+  if ((i < 1) || (i > (_el_hs.length + 1))) {
     return 0;
   }
-  _el_hs.offset = i;
+  _el_hs.offset = i - 1;
+  
+  return 1;
+}
+
+
+/*
+this function sets the current history
+offset based on the history entry
+progressive index (starting from zero)
+returns 1 if succesful, 0 if not
+*/
+int history_set_pos(int i)
+{
+  if ((i < 1) || (i > _el_hs.length)) {
+    return 0;
+  }
+  _el_hs.offset = i - 1;
   
   return 1;
 }
@@ -559,10 +577,39 @@ the previous HIST_ENTRY, or NULL
 if the current offset is already at
 the beginning of history
 */
+HIST_ENTRY *_el_previous_history()
+{
+  return ((_el_hs.entries && _el_hs.offset)
+    ? _el_hs.entries[--(_el_hs.offset)] : NULL);
+}
+
+
+/*
+this function returns a pointer to
+the previous HIST_ENTRY, or NULL
+if the current offset is already at
+the beginning of history
+*/
 HIST_ENTRY *previous_history()
 {
-  return ((_el_hs.entries && (_el_hs.offset > 0))
+  return ((_el_hs.entries && (_el_hs.offset > 1))
     ? _el_hs.entries[--(_el_hs.offset)] : NULL);
+}
+
+
+/*
+this function returns a pointer to
+the next HIST_ENTRY, or NULL
+if the current offset is already at
+the end of history
+*/
+HIST_ENTRY *_el_next_history()
+{
+  return ((((_el_hs.offset == 0) && (_el_hs.length == 1))
+    || (_el_hs.offset == _el_hs.length)
+    || (!(_el_hs.entries))
+    || (!_el_hs.entries[_el_hs.offset + 1]))
+    ? NULL : _el_hs.entries[++(_el_hs.offset)]);
 }
 
 
@@ -574,8 +621,7 @@ the end of history
 */
 HIST_ENTRY *next_history()
 {
-  return ((((_el_hs.offset == 0) && (_el_hs.length == 1))
-    || (_el_hs.offset == _el_hs.length)
+  return (((_el_hs.offset == _el_hs.length - 1)
     || (!(_el_hs.entries))
     || (!_el_hs.entries[_el_hs.offset + 1]))
     ? NULL : _el_hs.entries[++(_el_hs.offset)]);

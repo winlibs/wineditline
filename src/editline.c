@@ -55,7 +55,7 @@ int _el_display_prev_hist()
       return -1;
     }
     replace_history_entry(where_history(), rl_line_buffer, NULL);
-    previous_history();
+    _el_previous_history();
     _el_display_history();
   }
   
@@ -65,12 +65,12 @@ int _el_display_prev_hist()
 
 int _el_display_next_hist()
 {
-  if (where_history() < (history_length() - 1)) {
+  if (where_history() < history_length()) {
     if (!_el_w2mb(_el_line_buffer, &rl_line_buffer)) {
       return -1;
     }
     replace_history_entry(where_history(), rl_line_buffer, NULL);
-    next_history();
+    _el_next_history();
     _el_display_history();
   }
   
@@ -85,7 +85,7 @@ int _el_display_first_hist()
       return -1;
     }
     replace_history_entry(where_history(), rl_line_buffer, NULL);
-    while (previous_history());
+    _el_history_set_pos(1);
     _el_display_history();
   }
   
@@ -95,12 +95,12 @@ int _el_display_first_hist()
 
 int _el_display_last_hist()
 {
-  if (where_history() < (history_length() - 1)) {
+  if (where_history() < history_length()) {
     if (!_el_w2mb(_el_line_buffer, &rl_line_buffer)) {
       return -1;
     }
     replace_history_entry(where_history(), rl_line_buffer, NULL);
-    history_set_pos(history_length() - 1);
+    _el_history_set_pos(history_length() + 1);
     _el_display_history();
   }
   
@@ -1458,8 +1458,7 @@ char *readline(const char *prompt)
   }
   
   printf("\n");
-  while (next_history());
-  previous_history();
+  history_set_pos(history_length());
   /*
   if CTRL+C has been pressed, return an empty string
   */
