@@ -929,7 +929,11 @@ char *readline(const char *prompt)
   DWORD count = 0;
   INPUT_RECORD irBuffer;
   CONSOLE_SCREEN_BUFFER_INFO sbInfo;
+  static int piped_input_finished = FALSE;
 
+  if (piped_input_finished) {
+	  return NULL;
+  }
   
   _el_ctrl_c_pressed = FALSE;
   _el_line_buffer = NULL;
@@ -1080,8 +1084,35 @@ char *readline(const char *prompt)
     wait for console events
     */
     if (!PeekConsoleInput(_el_h_in, &irBuffer, 1, &count)) {
-      _el_clean_exit();
-      return NULL;
+		/* Check we're possibly piped from another program. */
+		BOOL ret;
+		char *pos, buf[8192];
+		DWORD to_read = sizeof(buf);
+
+		/* Can't guarantee Unicode here, we don't control the data passed through the pipe. */
+		pos = buf;
+		memset(pos, 0, sizeof(buf));
+
+		do {
+			ret = ReadFile(_el_h_in, pos, to_read, &count, 0);
+			pos += count;
+			to_read -= count;
+		} while (ret && to_read > 0);
+
+		if (pos == buf) {
+			_el_clean_exit();
+			return NULL;
+		} else if (to_read > 0) {
+			/* Tried to fill the buf, but there's nothing anymore. Force finish. */
+			piped_input_finished = TRUE;
+		}
+
+		buf[pos - buf] = '\0';
+		ret_string = _strdup(buf);
+
+		_el_clean_exit();
+
+		return ret_string;
     }
     if (count) {
       if ((irBuffer.EventType == KEY_EVENT) && irBuffer.Event.KeyEvent.bKeyDown) {
