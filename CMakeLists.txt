@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 project (WinEditLine)
 set (WinEditLine_VERSION_MAJOR 2)
-set (WinEditLine_VERSION_MINOR 1)
+set (WinEditLine_VERSION_MINOR 2)
 if(NOT DEFINED LIB_SUFFIX)
   if(CMAKE_SIZEOF_VOID_P MATCHES 4)
     set(LIB_SUFFIX "32")

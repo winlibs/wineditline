@@ -5,7 +5,7 @@ history.c
 is part of:
 
 WinEditLine (formerly MinGWEditLine)
-Copyright 2010-2014 Paolo Tosco <paolo.tosco@unito.it>
+Copyright 2010-2016 Paolo Tosco <paolo.tosco.mail@gmail.com>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define UNICODE
 
 #include <editline/readline.h>
+#include <editline/wineditline.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -123,7 +124,7 @@ void source_editrc()
     swprintf_s(editrc, n, _T("%s\\.editrc"), appdata);
     free(appdata);
   }
-  if (_wfopen_s(&handle, editrc, _T("rb"))) {
+  if (_wfopen_s(&handle, editrc, _T("r"))) {
     free(editrc);
     return;
   }
@@ -160,8 +161,7 @@ void source_editrc()
 
 
 /*
-this function MUST be called before calling
-readline() for the first time
+this function MUST be called before using history functions
 returns 0 if successful, -1 if not
 */
 int using_history()
@@ -198,7 +198,7 @@ int using_history()
   memset(&_el_hs, 0, sizeof(HISTORY_STATE));
   _el_hs.entries = (HIST_ENTRY **)_el_alloc_array
     (size + 1, sizeof(HIST_ENTRY));
-  if (!(_el_hs.entries)) {
+  if (!_el_hs.entries) {
     return -1;
   }
   _el_hs.length = 1;
@@ -222,10 +222,8 @@ void free_history()
   if (_el_hs.entries) {
     for (i = 0; i <= _el_hs.size; ++i) {
       if (_el_hs.entries[i]) {
-        if (_el_hs.entries[i]->line) {
-          free(_el_hs.entries[i]->line);
-          _el_hs.entries[i]->line = NULL;
-        }
+        free(_el_hs.entries[i]->line);
+        _el_hs.entries[i]->line = NULL;
       }
     }
     _el_free_array(_el_hs.entries);
@@ -242,13 +240,17 @@ returns 0 if successful, -1 or errno if not
 int read_history(const char *filename)
 {
   wchar_t *name = NULL;
-  char line[_EL_BUF_LEN];
+  char *line = NULL;
+  char *eof;
+  int grow_line;
+  int line_size = 0;
+  int s = 0;
   int i;
   int line_len = 0;
   FILE *file;
   
   
-  if (!(_el_hs.entries)) {
+  if (!_el_hs.entries) {
     if (using_history()) {
       return -1;
     }
@@ -257,49 +259,66 @@ int read_history(const char *filename)
   if (_el_find_history_file(filename, &name)) {
     return -1;
   }
-  if (_wfopen_s(&file, name, _T("rb"))) {
+  if (_wfopen_s(&file, name, _T("r"))) {
     return errno;
   }
   i = 0;
-  while (fgets(line, _EL_BUF_LEN, file)) {
-    line[_EL_BUF_LEN - 1] = '\0';
-    _el_remove_tail_spaces(line);
-    if (line[0]) {
-      ++i;
+  grow_line = 1;
+  do {
+    if (grow_line) {
+      line_size += _EL_BUF_LEN;
+      line = realloc(line, line_size);
+      if (!line) {
+        return -1;
+      }
     }
-  }
+    eof = fgets(&line[s], _EL_BUF_LEN, file);
+    line_len = (int)strlen(line);
+    s = 0;
+    grow_line = (eof && line_len && (line[line_len - 1] != '\n'));
+    if (grow_line) {
+      s = line_len;
+    }
+    else {
+      _el_remove_tail_spaces(line);
+      if (line[0]) {
+        ++i;
+      }
+    }
+  } while (eof);
   rewind(file);
+  /*
+  skip the older history lines until the
+  remaining do not fit into _el_hs.size
+  */
   while (i > _el_hs.size) {
-    if (!fgets(line, _EL_BUF_LEN, file)) {
+    if (!fgets(line, line_size, file)) {
       break;
     }
-    line[_EL_BUF_LEN - 1] = _T('\0');
     _el_remove_tail_spaces(line);
     if (line[0]) {
       --i;
     }
   }
   i = 0;
-  while (fgets(line, _EL_BUF_LEN, file)) {
-    line[_EL_BUF_LEN - 1] = _T('\0');
+  while (fgets(line, line_size, file)) {
     _el_remove_tail_spaces(line);
     if (line[0]) {
       line_len = (int)strlen(line);
       _el_hs.entries[i]->line = realloc
         (_el_hs.entries[i]->line, line_len + 1);
-      if (!(_el_hs.entries[i]->line)) {
+      if (!_el_hs.entries[i]->line) {
         return -1;
       }
       strcpy_s(_el_hs.entries[i]->line, line_len + 1, line);
       ++i;
-      ++(_el_hs.length);
-      ++(_el_hs.offset);
+      ++_el_hs.length;
+      ++_el_hs.offset;
     }
   }
   fclose(file);
-  if (name) {
-    free(name);
-  }
+  free(name);
+  free(line);
   
   return 0;
 }
@@ -311,32 +330,75 @@ file; if filename is a NULL pointer, then
 %APPDATA%\.history is written
 returns 0 if successful, -1 or errno if not
 */
-int write_history(const char *filename)
+int _el_write_history_helper(const char *filename, const wchar_t *mode, int nelements)
 {
   wchar_t *name = NULL;
-  int i = 0;
+  int i;
   FILE *file = NULL;
   
   
   errno = 0;
-  if ((!(_el_hs.entries))
+  if (!_el_hs.entries
     || _el_find_history_file(filename, &name)) {
     return -1;
   }
-  if (_wfopen_s(&file, name, _T("wb"))) {
+  if (_wfopen_s(&file, name, mode)) {
     return errno;
   }
-  for (i = 0; i < (_el_hs.length - 1); ++i) {
+  for (i = ((nelements == -1) || ((nelements + 1) > _el_hs.length))
+    ? 0 : _el_hs.length - (nelements + 1); i < (_el_hs.length - 1); ++i) {
     if (_el_hs.entries[i]->line[0]) {
       fprintf(file, "%s\n", _el_hs.entries[i]->line);
     }
   }
   fclose(file);
+  free(name);
 
-  if (name) {
-    free(name);
-  }
   return 0;
+}
+
+
+/*
+this function writes history to a text file; if filename is
+a NULL pointer, then %APPDATA%\.history is written
+returns 0 if successful, -1 or errno if not
+*/
+int write_history(const char *filename)
+{
+  return _el_write_history_helper(filename, _T("w"), -1);
+}
+
+
+/*
+this function appends the last nelements of history to a text file;
+if filename is a NULL pointer, then %APPDATA%\.history is written
+returns 0 if successful, -1 or errno if not
+*/
+int append_history(int nelements, const char *filename)
+{
+  return _el_write_history_helper(filename, _T("a"), nelements);
+}
+
+
+/*
+this function truncates the history file "filename", leaving only
+the last nlines lines; if filename is a NULL pointer, then
+%APPDATA%\.history is used
+returns 0 if successful, -1 or errno if not
+*/
+int history_truncate_file(const char *filename, int nlines)
+{
+  int ret = -1;
+  HISTORY_STATE _el_hs_copy = _el_hs;
+  
+  memset(&_el_hs, 0, sizeof(HISTORY_STATE));
+	if (!read_history(filename)) {
+    ret = _el_write_history_helper(filename, _T("w"), nlines);
+  }
+	free_history();
+  _el_hs = _el_hs_copy;
+
+	return ret;
 }
 
 
@@ -346,9 +408,7 @@ this function frees a history entry
 void free_history_entry(HIST_ENTRY *entry)
 {
   if (entry) {
-    if (entry->line) {
-      free(entry->line);
-    }
+    free(entry->line);
     free(entry);
   }
 }
@@ -362,11 +422,11 @@ void clear_history()
   int i;
   
   
-  if (!(_el_hs.entries)) {
+  if (!_el_hs.entries) {
     return;
   }
   for (i = 0; i < _el_hs.length; ++i) {
-    if (_el_hs.entries[i] && _el_hs.entries[i]->line) {
+    if (_el_hs.entries[i]) {
       free(_el_hs.entries[i]->line);
       _el_hs.entries[i]->line = NULL;
     }
@@ -391,12 +451,12 @@ char *add_history(char *line)
     return NULL;
   }
   len = (int)strlen(line);
-  if (!(_el_hs.entries)) {
+  if (!_el_hs.entries) {
     if (using_history()) {
       return NULL;
     }
   }
-  if (!(_el_hs.entries)) {
+  if (!_el_hs.entries) {
     return NULL;
   }
   if (_el_hs.length > _el_hs.size) {
@@ -404,11 +464,11 @@ char *add_history(char *line)
     memmove(&_el_hs.entries[0], &_el_hs.entries[1],
       _el_hs.size * sizeof(HIST_ENTRY *));
     _el_hs.entries[_el_hs.size] = temp;
-    --(_el_hs.length);
+    --_el_hs.length;
   }
   _el_hs.entries[_el_hs.length - 1]->line = realloc
     (_el_hs.entries[_el_hs.length - 1]->line, len + 1);
-  if (!(_el_hs.entries[_el_hs.length - 1]->line)) {
+  if (!_el_hs.entries[_el_hs.length - 1]->line) {
     return NULL;
   }
   strcpy_s(_el_hs.entries[_el_hs.length - 1]->line, len + 1, line);
@@ -436,7 +496,7 @@ HIST_ENTRY *remove_history(int i)
   HIST_ENTRY *temp;
   
   
-  if ((!(_el_hs.entries)) || (!(_el_hs.entries[i]))
+  if (!_el_hs.entries || !_el_hs.entries[i]
     || (i < 0) || (i >= _el_hs.length)) {
     return NULL;
   }
@@ -468,12 +528,12 @@ HIST_ENTRY *replace_history_entry(int i, char *line, histdata_t dummy)
   
   
   len = strlen(line) + 1;
-  if ((!(_el_hs.entries)) || (!(_el_hs.entries[i]))
+  if (!_el_hs.entries || !_el_hs.entries[i]
     || (i < 0) || (i >= _el_hs.length)) {
     return NULL;
   }
   _el_hs.entries[i]->line = realloc(_el_hs.entries[i]->line, len);
-  if (!(_el_hs.entries[i]->line)) {
+  if (!_el_hs.entries[i]->line) {
     return NULL;
   }
   strcpy_s(_el_hs.entries[i]->line, len, line);
@@ -532,7 +592,7 @@ index i does not exist
 */
 HIST_ENTRY *history_get(int i)
 {
-  return ((!(_el_hs.entries)) || ((i < 0)
+  return (!_el_hs.entries || ((i < 0)
     || (i > _el_hs.length)) ? NULL : _el_hs.entries[i]);
 }
 
@@ -580,7 +640,7 @@ the beginning of history
 HIST_ENTRY *_el_previous_history()
 {
   return ((_el_hs.entries && _el_hs.offset)
-    ? _el_hs.entries[--(_el_hs.offset)] : NULL);
+    ? _el_hs.entries[--_el_hs.offset] : NULL);
 }
 
 
@@ -593,44 +653,37 @@ the beginning of history
 HIST_ENTRY *previous_history()
 {
   return ((_el_hs.entries && (_el_hs.offset > 1))
-    ? _el_hs.entries[--(_el_hs.offset)] : NULL);
+    ? _el_hs.entries[--_el_hs.offset] : NULL);
 }
 
 
 /*
-this function returns a pointer to
-the next HIST_ENTRY, or NULL
-if the current offset is already at
-the end of history
+this function returns a pointer to the next HIST_ENTRY, or NULL
+if the current offset is already at the end of history
 */
 HIST_ENTRY *_el_next_history()
 {
   return ((((_el_hs.offset == 0) && (_el_hs.length == 1))
     || (_el_hs.offset == _el_hs.length)
-    || (!(_el_hs.entries))
-    || (!_el_hs.entries[_el_hs.offset + 1]))
-    ? NULL : _el_hs.entries[++(_el_hs.offset)]);
+    || !_el_hs.entries || !_el_hs.entries[_el_hs.offset + 1])
+    ? NULL : _el_hs.entries[++_el_hs.offset]);
 }
 
 
 /*
-this function returns a pointer to
-the next HIST_ENTRY, or NULL
-if the current offset is already at
-the end of history
+this function returns a pointer to the next HIST_ENTRY, or NULL
+if the current offset is already at the end of history
 */
 HIST_ENTRY *next_history()
 {
   return (((_el_hs.offset == _el_hs.length - 1)
-    || (!(_el_hs.entries))
-    || (!_el_hs.entries[_el_hs.offset + 1]))
-    ? NULL : _el_hs.entries[++(_el_hs.offset)]);
+    || !_el_hs.entries || !_el_hs.entries[_el_hs.offset + 1])
+    ? NULL : _el_hs.entries[++_el_hs.offset]);
 }
 
 
 /*
-this function displays the current
-history entry
+this function displays the current history entry
 */
 void _el_display_history()
 {
@@ -639,19 +692,15 @@ void _el_display_history()
   
   
   _el_set_cursor(-rl_point);
-  if ((!(_el_hs.entries)) || (!_el_mb2w
+  if (!_el_hs.entries || (!_el_mb2w
     (_el_hs.entries[_el_hs.offset]->line, &_el_wide))) {
     return;
   }
   h_len = (int)wcslen(_el_wide);
   line_len = (int)wcslen(_el_line_buffer);
-  if (h_len > (_EL_BUF_LEN - 1)) {
-    h_len = _EL_BUF_LEN - 1;
-    _el_wide[_EL_BUF_LEN - 1] = '\0';
-  }
+  _el_grow_buffers(h_len);
   wcscpy_s(_el_line_buffer, _el_line_buffer_size, _el_wide);
   wcscpy_s(_el_print, _el_line_buffer_size, _el_wide);
-  wcscpy_s(_el_line_buffer, _el_line_buffer_size, _el_wide);
   rl_point = (int)h_len;
   if (h_len < line_len) {
     _el_add_char(_el_print, _T(' '), line_len - h_len);
@@ -696,9 +745,7 @@ int _el_find_history_file(const char *filename, wchar_t **name)
       return -1;
     }
   }
-  if (appdata) {
-    free(appdata);
-  }
+  free(appdata);
   
   return 0;
 }
