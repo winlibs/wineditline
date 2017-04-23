@@ -917,12 +917,11 @@ char *readline(const char *prompt)
   int line_len = 0;
   int old_width = 0;
   int width = 0;
-  int keep_reading;
   UINT32 ctrl = 0;
   UINT32 special = 0;
   COORD coord;
   DWORD count = 0;
-  BOOL eof;
+  BOOL read_ok;
   DWORD file_type;
   DWORD actually_read;
   INPUT_RECORD irBuffer;
@@ -998,32 +997,30 @@ char *readline(const char *prompt)
   if we are reading from a file or a pipe, read one line and exit
   */
   if ((file_type == FILE_TYPE_DISK) || (file_type == FILE_TYPE_PIPE)) {
-    keep_reading = 1;
+    readfile_buf = 0;
     len = 0;
     line_len = 0;
-    while (keep_reading) {
-      eof = ReadFile(_el_h_in, &readfile_buf, 1, &actually_read, NULL);
-      keep_reading = (eof && actually_read && (readfile_buf != '\n'));
-      if (keep_reading) {
-        if ((len + 1) >= line_len) {
-          line_len += _EL_BUF_LEN;
-          rl_line_buffer = realloc(rl_line_buffer, line_len);
-          if (!rl_line_buffer) {
-            _el_clean_exit();
-            return NULL;
-          }
-        }
-        rl_line_buffer[len++] = readfile_buf;
+    while (readfile_buf != '\n') {
+      read_ok = ReadFile(_el_h_in, &readfile_buf, 1, &actually_read, NULL);
+      if (!(read_ok && actually_read)) {
+        break;
       }
+      if ((len + 1) >= line_len) {
+        line_len += _EL_BUF_LEN;
+        rl_line_buffer = realloc(rl_line_buffer, line_len);
+        if (!rl_line_buffer) {
+          _el_clean_exit();
+          return NULL;
+        }
+      }
+      rl_line_buffer[len++] = readfile_buf;
     }
     if (rl_line_buffer) {
+      while (len && ((rl_line_buffer[len - 1] == '\n')
+        || (rl_line_buffer[len - 1] == '\r'))) {
+        --len;
+      }
       rl_line_buffer[len] = '\0';
-      if ((len > 0) && rl_line_buffer[len - 1] == '\n') {
-        rl_line_buffer[len - 1] = '\0';
-      }
-      if ((len > 1) && rl_line_buffer[len - 2] == '\r') {
-        rl_line_buffer[len - 2] = '\0';
-      }
       ret_string = _strdup(rl_line_buffer);
     }
     _el_clean_exit();

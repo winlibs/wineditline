@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
   printf("\nType exit to quit the test\n\n");
   while ((line = DO_EDIT_read("prompt>"))
     && (strncmp(line, "exit", 4))) {
-    printf("string=%s\n", line);
+    printf("string='%s'\n", line);
     free(line);
   }
   

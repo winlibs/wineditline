@@ -63,14 +63,8 @@ void _el_remove_tail_spaces(char *line)
   
   
   len = (int)strlen(line);
-  if (len) {
+  while (len && isspace(line[len - 1])) {
     --len;
-  }
-  while (len && isspace(line[len])) {
-    --len;
-  }
-  if (len) {
-    ++len;
   }
   line[len] = '\0';
 }
