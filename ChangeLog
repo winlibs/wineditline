@@ -1,6 +1,12 @@
 WinEditLine's (formerly MinGWEditLine) ChangeLog
 ------------------------------------------------
 
+*** May 11, 2017: release of WinEditLine 2.202 ***
+
+  Changes with respect to the previous version include:
+  - fixed https://bugs.php.net/bug.php?id=74490
+  - fixed https://bugs.php.net/bug.php?id=74489
+
 *** November 17, 2016: release of WinEditLine 2.201 ***
 
   Changes with respect to the previous version include:

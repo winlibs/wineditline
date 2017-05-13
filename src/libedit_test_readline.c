@@ -1,5 +1,11 @@
+/*
+
+libedit_test.c
+
+is part of:
+
 WinEditLine (formerly MinGWEditLine)
-Copyright 2010-2017 Paolo Tosco <paolo.tosco.mail@gmail.com>
+Copyright 2010-2016 Paolo Tosco <paolo.tosco.mail@gmail.com>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,3 +32,31 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
+
+/*
+This example shows how to use WinEditLine
+statically linked into a program
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+
+int main(int argc, char *argv[])
+{
+  char *line;
+
+  printf("\nType exit to quit the test\n\n");
+  while ((line = readline("prompt>"))
+    && (strncmp(line, "exit", 4))) {
+    printf("string='%s'\n", line);
+    add_history(line);
+    free(line);
+  }
+  
+  return 0;
+}
