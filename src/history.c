@@ -265,6 +265,7 @@ int read_history(const char *filename)
       if (!line) {
         return -1;
       }
+      memset(&line[s], '\0', _EL_BUF_LEN);
     }
     eof = fgets(&line[s], _EL_BUF_LEN, file);
     line_len = (int)strlen(line);
