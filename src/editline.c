@@ -854,13 +854,13 @@ size is the final number of bytes that need to fit in the buffer
 */
 int _el_grow_buffers(size_t size)
 {
+  size_t prev_size = _el_line_buffer_size;
   if (_el_line_buffer_size && (size < (_el_line_buffer_size - 1))) {
     return 1;
   }
   if (!size) {
     size = 1;
   }
-  size_t prev_size = _el_line_buffer_size;
   _el_line_buffer_size = (size / _EL_BUF_LEN + 1) * _EL_BUF_LEN;
   _el_line_buffer = (wchar_t *)realloc(_el_line_buffer, _el_line_buffer_size * sizeof(wchar_t));
   if (_el_line_buffer) {
