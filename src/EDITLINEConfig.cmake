@@ -16,6 +16,6 @@ else()
   message(WARNING "You are apparently not using Windows. We are not ready for that yet...")
 endif()
 
-set(EDITLINE_LIBRARIES EDITLINE_LIBRARY_DIRS)
+set(EDITLINE_LIBRARIES "${EDITLINE_LIBRARY_DIRS}")
 message(STATUS "EDITLINE_LIBRARIES: ${EDITLINE_LIBRARIES}")
 set(EDITLINE_FOUND TRUE)
