@@ -17,5 +17,5 @@ else()
 endif()
 
 set(EDITLINE_LIBRARIES "${EDITLINE_LIBRARY_DIRS}")
-message(STATUS "EDITLINE_LIBRARIES: ${EDITLINE_LIBRARIES}")
-set(EDITLINE_FOUND TRUE)
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Editline DEFAULT_MSG EDITLINE_LIBRARIES EDITLINE_INCLUDE_DIR)
