@@ -39,6 +39,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _WINEDITLINE_H_
 #define _WINEDITLINE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <windows.h>
 
 /*
