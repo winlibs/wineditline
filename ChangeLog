@@ -1,6 +1,11 @@
 WinEditLine's (formerly MinGWEditLine) ChangeLog
 ------------------------------------------------
 
+*** January 6, 2020: release of WinEditLine 2.206 ***
+
+  Changes with respect to the previous version include:
+  - Added a missing "extern C" in readline.h
+
 *** January 12, 2018: release of WinEditLine 2.205 ***
 
   Changes with respect to the previous version include:
