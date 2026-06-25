@@ -5,7 +5,7 @@ editline.c
 is part of:
 
 WinEditLine (formerly MinGWEditLine)
-Copyright 2010-2020 Paolo Tosco <paolo.tosco.mail@gmail.com>
+Copyright 2010-2022 Paolo Tosco <paolo.tosco.mail@gmail.com>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,8 +35,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
+#ifndef _UNICODE
 #define _UNICODE
+#endif
+#ifndef UNICODE
 #define UNICODE
+#endif
 
 #include <editline/readline.h>
 #include <editline/wineditline.h>
@@ -282,6 +286,7 @@ int _el_insert_char(wchar_t *buf, int n)
   set the new logical cursor position
   */
   rl_point += n;
+  rl_end = (int)wcslen(_el_line_buffer);
   /*
   print the insertion
   */
@@ -365,6 +370,7 @@ int _el_delete_char(UINT32 vk, int n)
   memmove(&_el_line_buffer[rl_point],
     &_el_line_buffer[rl_point + eff_n],
     (c - eff_n) * sizeof(wchar_t));
+  rl_end = (int)wcslen(_el_line_buffer);
   /*
   copy the characters from the current cursor
   position to end of line in a string
@@ -909,6 +915,7 @@ char *readline(const char *prompt)
   char *ret_string = NULL;
   char readfile_buf;
   char have_cursor_x_start = 0;
+  int i = 0;
   int start = 0;
   int end = 0;
   int compl_pos = -1;
@@ -944,6 +951,7 @@ char *readline(const char *prompt)
   _el_compl_array = NULL;
   _el_completer_word_break_characters = NULL;
   rl_point = 0;
+  rl_end = 0;
   rl_attempted_completion_over = 0;
   _el_compl_index = 0;
   _el_n_compl = 0;
@@ -979,6 +987,15 @@ char *readline(const char *prompt)
   if (!rl_prompt) {
     _el_clean_exit();
     return NULL;
+  }
+  /*
+  If prompt starts with newline(s), ignore them
+  */
+  while (rl_prompt[i] == '\n') {
+    ++i;
+  }
+  if (i) {
+    memmove(rl_prompt, &rl_prompt[i], strlen(rl_prompt) - i + 1);
   }
   if (!_el_mb2w(rl_prompt, &_el_prompt)) {
     _el_clean_exit();

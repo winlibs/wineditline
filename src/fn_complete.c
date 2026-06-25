@@ -5,7 +5,7 @@ fn_complete.c
 is part of:
 
 WinEditLine (formerly MinGWEditLine)
-Copyright 2010-2020 Paolo Tosco <paolo.tosco.mail@gmail.com>
+Copyright 2010-2022 Paolo Tosco <paolo.tosco.mail@gmail.com>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,8 +36,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
+#ifndef _UNICODE
 #define _UNICODE
+#endif
+#ifndef UNICODE
 #define UNICODE
+#endif
 
 #include <editline/readline.h>
 #include <editline/wineditline.h>

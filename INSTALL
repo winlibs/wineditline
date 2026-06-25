@@ -20,14 +20,14 @@ cd in the WinEditLine root folder, then issue the following commands:
 C:\Users\ptosco> mkdir build
 C:\Users\ptosco> cd build
 
-then, for a 32-bit build:
+then, for a VS2015 32-bit Release build:
 
-C:\Users\ptosco> cmake -A x86 ..
+C:\Users\ptosco> cmake -DCMAKE_BUILD_TYPE=Release -A Win32 -T v141 ..
 C:\Users\ptosco> MSBuild.exe /p:Configuration=Release INSTALL.vcxproj
 
-instead, for a 64-bit build:
+instead, for a VS2015 64-bit Release build:
 
-C:\Users\ptosco> cmake -A x64 ..
+C:\Users\ptosco> cmake -DCMAKE_BUILD_TYPE=Release -A x64 -T v141 ..
 C:\Users\ptosco> MSBuild.exe /p:Configuration=Release INSTALL.vcxproj
 
 The path to the MSBuild.exe binary might vary depending on the
@@ -49,6 +49,5 @@ fall back on standard fgets(). libedit_test.c is a standard example
 of static linking against libedit_static.a/edit_static.lib.
 
 Pre-built static libraries and DLLs are provided for both 32 and
-64-bit Windows in the lib32, lib64, bin32, bin64 folders. Files
-whose name starts with "libedit" were built with MinGW compilers,
-while those starting with "edit" were built with MSVC 2017.
+64-bit Windows in the lib32, lib64, bin32, bin64 folders.
+All binaries were built with MSVC 2017.

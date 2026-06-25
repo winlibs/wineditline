@@ -1,6 +1,23 @@
 WinEditLine's (formerly MinGWEditLine) ChangeLog
 ------------------------------------------------
 
+*** December 3, 2022: release of WinEditLine 2.208 ***
+
+  Changes with respect to the previous version include:
+  - Newlines at the beginning of the prompt string are
+    now ignored similarly to libeditline (Thanks to
+    Mark Pizzolato for the contribution)
+  - UNICODE and _UNICODE are now defined only if not
+    already defined upstream (Thanks to Mark Pizzolato
+    for the contribution)
+
+*** December 5, 2021: release of WinEditLine 2.207 ***
+
+  Changes with respect to the previous version include:
+  - Added rl_library_version, rl_end, rl_readline_version
+    from php branch (Thanks to Anatol Belski for the
+    contribution)
+
 *** January 6, 2020: release of WinEditLine 2.206 ***
 
   Changes with respect to the previous version include:
